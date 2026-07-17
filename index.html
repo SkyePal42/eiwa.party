@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英和 Party</title>
+    <!-- Beautiful Google Fonts integration for a premium, rounded aesthetic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Sakura Emoji Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌸</text></svg>">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Light Mode Sakura Palette */
+            --bg-color: #fdfafb; /* Soft cherry blossom off-white */
+            --text-color: #3d3032; /* Warm dark gray with a touch of plum */
+            --primary-accent: #d05a6e; /* Nadeshiko Sakura pink */
+            --primary-light: #fbe6e8; /* Super soft pink background */
+            --secondary-accent: #6c8c72; /* Soft Matcha green */
+            --secondary-light: #e8f0e9; /* Super soft green background */
+            --card-bg: #ffffff;
+            --border-color: #eed6da; /* Gentle pinkish border */
+            --hover-shadow: 0 12px 32px rgba(208, 90, 110, 0.12);
+            --hero-gradient: linear-gradient(135deg, #e5989b, #b56576); /* Sakura gradient */
+        }
+
+        /* Dark Mode Sakura Palette */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1516; /* Deep dark plum-gray */
+                --text-color: #f7ebed; /* Soft blush white */
+                --primary-accent: #f29ca9; /* Bright pastel blossom pink */
+                --primary-light: #2c1a1d; /* Dark muted pink */
+                --secondary-accent: #8fb396; /* Pastel green */
+                --secondary-light: #1c261e; /* Dark muted matcha green */
+                --card-bg: #221c1d;
+                --border-color: #382c2e;
+                --hover-shadow: 0 12px 32px rgba(242, 156, 169, 0.15);
+                --hero-gradient: linear-gradient(135deg, #d05a6e, #8c3b4a);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 0 1.5rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Decorative Background Blossoms (CSS illustration blobs) */
+        body::before, body::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.35;
+        }
+
+        body::before {
+            width: 350px;
+            height: 350px;
+            background-color: var(--primary-accent);
+            top: -50px;
+            right: -100px;
+        }
+
+        body::after {
+            width: 300px;
+            height: 300px;
+            background-color: var(--secondary-accent);
+            bottom: 100px;
+            left: -100px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 4rem 0;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        header h1 {
+            font-family: "Zen Maru Gothic", sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            color: var(--primary-accent);
+            margin-bottom: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        header h1::after {
+            content: "🌸";
+            font-size: 2.2rem;
+            vertical-align: middle;
+        }
+
+        header p {
+            font-size: 1.15rem;
+            opacity: 0.85;
+            font-weight: 500;
+        }
+
+        /* Hero App Callout */
+        .hero-card {
+            background: var(--hero-gradient);
+            color: #ffffff;
+            padding: 3rem 2.5rem;
+            border-radius: 20px;
+            margin-bottom: 4rem;
+            box-shadow: 0 15px 35px rgba(229, 152, 155, 0.3);
+            text-align: center;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .hero-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(229, 152, 155, 0.45);
+        }
+
+        .hero-card h2 {
+            font-family: "Zen Maru Gothic", sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            letter-spacing: -0.01em;
+        }
+
+        .hero-card p {
+            font-size: 1.15rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+            max-width: 720px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            color: #b56576; /* Anchored to Sakura tone */
+            font-family: "Zen Maru Gothic", sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 1rem 2.5rem;
+            border-radius: 30px;
+            text-decoration: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            background-color: #fff0f2;
+            transform: scale(1.04);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Section Layouts */
+        .main-section-title {
+            font-family: "Zen Maru Gothic", sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-top: 3.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+            color: var(--text-color);
+        }
+
+        .main-section-title::after {
+            content: "";
+            display: block;
+            width: 60px;
+            height: 3px;
+            background-color: var(--primary-accent);
+            margin: 0.75rem auto 0 auto;
+            border-radius: 2px;
+        }
+
+        .section-title {
+            font-family: "Zen Maru Gothic", sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.75rem;
+            color: var(--primary-accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-title::before {
+            content: "✦";
+            font-size: 1.2rem;
+            color: var(--secondary-accent);
+        }
+
+        .pathway-section {
+            margin-bottom: 4rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .grid-span-2 {
+                grid-column: span 2;
+            }
+        }
+
+        /* Individual Card Styling */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.75rem;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+        }
+
+        .card:not(.multi-link-card):hover {
+            transform: translateY(-4px);
+            box-shadow: var(--hover-shadow);
+            border-color: var(--primary-accent);
+            background-color: var(--primary-light);
+        }
+
+        .card h3 {
+            font-family: "Zen Maru Gothic", sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.65rem;
+            color: var(--primary-accent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card:not(.multi-link-card) h3::after {
+            content: "🌸";
+            font-size: 1rem;
+            opacity: 0;
+            transition: all 0.25s ease;
+            transform: scale(0.5) rotate(-30deg);
+        }
+
+        .card:not(.multi-link-card):hover h3::after {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+        }
+
+        .card p {
+            font-size: 0.98rem;
+            opacity: 0.85;
+            line-height: 1.5;
+        }
+
+        /* Custom layouts for multi-link-card */
+        .multi-link-card {
+            cursor: default;
+            gap: 1.5rem;
+        }
+
+        .card-action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .sub-btn {
+            display: block;
+            text-align: center;
+            background-color: var(--card-bg);
+            color: var(--primary-accent);
+            border: 2px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .sub-btn:hover {
+            border-color: var(--primary-accent);
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(208, 90, 110, 0.08);
+        }
+
+        @media (min-width: 768px) {
+            .multi-link-card.grid-span-2 {
+                flex-direction: row;
+                align-items: center;
+                gap: 2.5rem;
+            }
+            .multi-link-card.grid-span-2 > div {
+                flex: 1;
+            }
+            .card-action-buttons {
+                flex: 0 0 320px;
+            }
+        }
+
+       /* Plain text elements for the self learning pathway */
+.text-block {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.01);
+    position: relative;
+    overflow: hidden; /* Changed from overflow-x: hidden to catch both axes */
+}
+
+        /* Subtle green leaf accent for the self-learning card footer background */
+        .text-block::before {
+            content: "🌿";
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            font-size: 3.5rem;
+            opacity: 0.1;
+            transform: rotate(15deg);
+        }
+
+        .text-block p {
+            margin-bottom: 1.25rem;
+            font-size: 1.05rem;
+        }
+
+        .text-block p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Footer & Contact Section */
+        footer {
+            margin-top: 6rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 4rem;
+            text-align: center;
+        }
+
+        .kofi-container {
+            margin-bottom: 2.5rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .contact-info {
+            max-width: 600px;
+            margin: 0 auto;
+            font-size: 1rem;
+            opacity: 0.85;
+            line-height: 1.7;
+        }
+
+        .contact-info a {
+            color: var(--primary-accent);
+            text-decoration: none;
+            font-weight: 600;
+            border-bottom: 1px dashed var(--primary-accent);
+            transition: all 0.2s ease;
+        }
+
+        .contact-info a:hover {
+            color: var(--text-color);
+            border-bottom-style: solid;
+        }
+
+        .developer-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px dashed var(--border-color);
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>英和 Party</h1>
+            <p>An opinionated collection of tools for learning Japanese</p>
+        </header>
+
+        <!-- Flagship companion app -->
+        <section class="hero-card">
+            <h2>Genki Learn</h2>
+            <p>
+                A free, custom-built companion web app for the Genki I &amp; II textbooks. Learn textbook vocabulary with flashcards, practice using sentence recall, and reinforce your memory with interactive fill-in-the-blank exercises.
+            </p>
+            <a href="https://genki.eiwa.party" class="btn" target="_blank" rel="noopener">TRY NOW: genki.eiwa.party</a>
+        </section>
+
+        <h1 class="main-section-title">My Resource Recommendations</h1>
+
+        <!-- Route 1: Genki / Formal Track -->
+        <section class="pathway-section">
+            <h2 class="section-title">For Genki I &amp; II based learners</h2>
+            <div class="grid">
+                <a href="https://genki.eiwa.party" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>Genki Companion App</h3>
+                        <p>All the textbook vocabulary pre-organised into a flashcard and review app.</p>
+                    </div>
+                </a>
+                <a href="https://youtube.com/playlist?list=PLA_RcUI8km1NKAoxPzDoIoflnd6bNC7Qm" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>ToKini Andy (YouTube)</h3>
+                        <p>Structured video walkthroughs explaining grammar chapter-by-chapter, complete with nuance tips not found in the textbooks.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Route 2: Self Learning & Extra Tools -->
+        <section class="pathway-section">
+            <h2 class="section-title">For starting to step outside the textbook</h2>
+            <div class="grid">
+                <a href="https://apps.ankiweb.net/" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>Anki</h3>
+                        <p>The gold standard flashcard app, with SRS to leverage how your memory works. Build your own flashcard deck, or use/edit a pre-made community deck.</p>
+                    </div>
+                </a>
+                <a href="https://github.com/donkuri/kaishi" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>Kaishi 1.5k Deck</h3>
+                        <p>The premier vocabulary starter deck recommended for beginner-to-intermediate learners starting their anki and self-learning journey.</p>
+                    </div>
+                </a>
+                <a href="https://www.wanikani.com" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>WaniKani</h3>
+                        <p>A structured, web-based alternative to Anki focusing purely on mnemonics to make mastering Kanji and associated vocabulary painless.</p>
+                    </div>
+                </a>
+                <a href="https://learnnatively.com" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>Natively</h3>
+                        <p>A community-graded book and manga database. Perfect for finding accessible reading practice tailored precisely to your current comprehension level.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Route 3: Sentence Mining & Novels -->
+        <section class="pathway-section">
+            <h2 class="section-title">For diving deeper</h2>
+            <div class="grid">
+                <a href="https://learnjapanese.moe/resources/" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>The Moe Way Resources</h3>
+                        <p>A detailed collection of resources, setup tools, and dictionary files curated for whatever immersion formats you prefer.</p>
+                    </div>
+                </a>
+                <a href="https://www.immersionkit.com" class="card" target="_blank" rel="noopener">
+                    <div>
+                        <h3>ImmersionKit</h3>
+                        <p>Search actual anime and drama subtitles to see how vocabulary and grammar patterns look in real-world contexts.</p>
+                    </div>
+                </a>
+                
+                <!-- Combined Difficulty & Pre-Reading Card spanning 2 columns -->
+                <div class="card multi-link-card grid-span-2">
+                    <div>
+                        <h3>Media Difficulty &amp; Pre-Reading</h3>
+                        <p>
+                            Essential tools for evaluating the difficulty and comprehension requirements of native media. Use these databases to analyse text density and prepare vocabulary decks beforehand so your reading sessions remain smooth and immersive.
+                        </p>
+                    </div>
+                    <div class="card-action-buttons">
+                        <a href="https://jpdb.io" target="_blank" rel="noopener" class="sub-btn">jpdb.io</a>
+                        <a href="https://jiten.moe" target="_blank" rel="noopener" class="sub-btn">jiten.moe</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Route 4: Pure Self-Learning & Textbook Philosophy -->
+        <section class="pathway-section">
+            <h2 class="section-title">For those travelling solo</h2>
+            <div class="text-block">
+                <p>
+                    If you are approaching Japanese completely on your own, know that there is no single "correct" path—only the path that keeps you consistently showing up every day.
+                </p>
+                <p>
+                    Traditional routes usually centre around textbook curricula like <b>Genki</b> or <b>Minna no Nihongo</b>, which offer structured stepping stones. If you prefer a clear framework but want to study at your own pace, pairing textbooks with interactive companion apps is a great way to stay engaged.
+                </p>
+                <p>
+                    Alternatively, modern self-study communities lean heavily into comprehensible input and early immersion, replacing traditional textbook drills with immediate exposure to books and native materials. If this approach excites you, head over to <a href="https://learnjapanese.moe" target="_blank" rel="noopener" style="color: var(--primary-accent); font-weight: 600; border-bottom: 1px dashed var(--primary-accent); text-decoration: none;">The Moe Way</a> to explore a step-by-step roadmap dedicated to this methodology.
+                </p>
+            </div>
+        </section>
+
+        <!-- Footer / Feedback / Kofi -->
+        <footer>
+            <div class="kofi-container">
+                <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
+                <script type='text/javascript'>
+                    kofiwidget2.init('Support for more', '#d05a6e', 'F2K123COI5');
+                    kofiwidget2.draw();
+                </script> 
+            </div>
+            <div class="contact-info">
+                <p>
+                    Have some feedback, spotted a bug, or want to contribute? I'd love to hear from you. 
+                    You can contact me directly at <a href="mailto:hello@yuzu.day">hello@yuzu.day</a>.
+                </p>
+                <div class="developer-section">
+                    <p>
+                        For developers: The source code and raw data files are available upon request, just send an email!
+                    </p>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+</body>
+</html>
