@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="ja" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nihongo Vault - Blocky Workstation</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sakura: {
+                            50: '#fdf2f4',
+                            100: '#fbe7eb',
+                            500: '#cc2244',
+                            600: '#aa1133',
+                            700: '#880022'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Klee+One:wght@400;600&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Courier Prime', monospace; }
+        .jp-font { font-family: 'Noto Sans JP', sans-serif; }
+        body.font-klee .jp-font { font-family: 'Klee One', cursive; }
+        ruby rt { font-size: 0.55em; color: #ff6688; user-select: none; font-weight: 700; line-height: 1; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #444; border: 1px solid #000; }
+        
+        #data-tooltip {
+            pointer-events: none;
+            transition: opacity 0.1s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-black text-white h-full flex flex-col antialiased overflow-hidden select-none">
+
+    <!-- Top Control Bar & Stage Nav Tabs -->
+    <header class="bg-black border-b-2 border-white px-4 py-2 flex flex-wrap items-center justify-between text-xs font-mono shrink-0 gap-2">
+        <!-- Left: Live Stats & 3-Stage Nav Tabs -->
+        <div class="flex items-center space-x-3">
+            <div id="deck-stats" class="text-zinc-400 text-[11px] font-bold tracking-tight">
+                TOTAL: 0 | REVIEW: 0 | HIDDEN: 0
+            </div>
+            
+            <nav class="flex items-center space-x-1 border-l border-zinc-800 pl-3" aria-label="Pipeline Stages">
+                <button onclick="switchStage('sort')" id="tab-btn-sort" class="px-3 py-1.5 text-xs font-bold bg-white text-black border-2 border-white uppercase" title="Stage 1: First Sort">1. FIRST SORT</button>
+                <button onclick="switchStage('review')" id="tab-btn-review" class="px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-zinc-900 border-2 border-zinc-800 uppercase" title="Stage 2: Active Review">2. REVIEW</button>
+                <button onclick="switchStage('data')" id="tab-btn-data" class="px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-zinc-900 border-2 border-zinc-800 uppercase" title="Stage 3: Data Overview & Backup">3. DATA VIEW</button>
+            </nav>
+        </div>
+
+        <!-- Right: Global Utilities -->
+        <div class="flex items-center space-x-2">
+            <!-- Spotlight Search -->
+            <button onclick="toggleSpotlightModal()" class="p-2 bg-zinc-900 border-2 border-zinc-700 hover:bg-zinc-800 text-base" title="Spotlight Search (Ctrl+K)">🔍</button>
+
+            <!-- Font Toggle -->
+            <button onclick="toggleFontFamily()" id="font-btn" class="p-2 bg-zinc-900 text-base hover:bg-zinc-800 border-2 border-zinc-700" title="Toggle Font Style (Noto Sans / Klee One)">🔤</button>
+
+            <!-- Furigana Toggle -->
+            <button onclick="toggleFurigana()" id="furigana-btn" class="p-2 bg-white text-black font-bold text-base hover:bg-zinc-300 border-2 border-white" title="Toggle Furigana Visibility">ふ</button>
+
+            <!-- Field Settings Cog Button -->
+            <button onclick="toggleFieldModal()" class="p-2 bg-zinc-900 border-2 border-zinc-700 hover:bg-zinc-800 text-base" title="Field Settings">⚙️</button>
+
+            <!-- Shortcuts Info Modal Trigger -->
+            <button onclick="toggleShortcutModal()" class="p-2 bg-zinc-900 border-2 border-zinc-700 hover:bg-zinc-800 text-base" title="Keyboard Shortcuts Info">ℹ️</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        <main class="flex-1 bg-black p-4 md:p-6 overflow-y-auto flex flex-col justify-between">
+
+            <!-- STAGE 1: FIRST SORT (Rapid Triage) -->
+            <section id="stage-sort" class="h-full flex flex-col justify-between space-y-4 max-w-3xl mx-auto w-full">
+                <!-- Toolbar for Stage 1 -->
+                <div class="bg-zinc-950 border border-zinc-800 p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-zinc-400 font-bold">// RAPID TRIAGE</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="navigateSort(-1)" class="px-3 py-1 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-sm font-bold">◀</button>
+                        <div class="flex items-center space-x-1">
+                            <input type="number" id="sort-jump-input" min="1" onchange="jumpSortIndex(this.value)" class="w-16 px-2 py-1 bg-black border border-zinc-700 text-xs text-center font-mono text-white">
+                            <span id="sort-total-label" class="text-zinc-500">/ 0</span>
+                        </div>
+                        <button onclick="navigateSort(1)" class="px-3 py-1 bg-white text-black font-bold border border-white hover:bg-zinc-300 text-sm">▶</button>
+                    </div>
+                </div>
+
+                <!-- Stage 1 Main Word Card -->
+                <div id="sort-card-container" class="flex-1 flex flex-col justify-between bg-black border-2 border-white p-6 my-2 relative">
+                    <!-- Dynamic Content Injected Here -->
+                </div>
+            </section>
+
+            <!-- STAGE 2: REVIEW (Browser-Style Active Study) -->
+            <section id="stage-review" class="hidden h-full flex flex-col justify-between space-y-4 max-w-3xl mx-auto w-full">
+                <!-- Toolbar for Stage 2 -->
+                <div class="bg-zinc-950 border border-zinc-800 p-3 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                    <div class="flex items-center space-x-2">
+                        <!-- Order Mode Toggle Button -->
+                        <button onclick="toggleReviewOrderMode()" id="review-order-btn" class="px-3 py-1 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-white font-bold" title="Toggle Queue Order">IN ORDER</button>
+                        
+                        <!-- Tag Filter Dropdown -->
+                        <select id="review-tag-filter" onchange="onReviewFilterChange()" class="bg-black border border-zinc-700 px-2 py-1 text-xs text-white">
+                            <option value="all">TAG: ALL</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="navigateReview(-1)" class="px-3 py-1 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-sm font-bold">◀</button>
+                        <div class="flex items-center space-x-1">
+                            <input type="number" id="review-jump-input" min="1" onchange="jumpReviewIndex(this.value)" class="w-16 px-2 py-1 bg-black border border-zinc-700 text-xs text-center font-mono text-white">
+                            <span id="review-total-label" class="text-zinc-500">/ 0</span>
+                        </div>
+                        <button onclick="navigateReview(1)" class="px-3 py-1 bg-white text-black font-bold border border-white hover:bg-zinc-300 text-sm">▶</button>
+                    </div>
+                </div>
+
+                <!-- Stage 2 Main Word Display (Browser-Style All Enabled Fields Visible) -->
+                <div id="review-card-container" class="flex-1 flex flex-col justify-between bg-black border-2 border-white p-6 my-2 relative">
+                    <!-- Dynamic Content Injected Here -->
+                </div>
+            </section>
+
+            <!-- STAGE 3: DATA VIEW (Compact Overview, Management & Backup) -->
+            <section id="stage-data" class="hidden h-full flex flex-col space-y-4 max-w-5xl mx-auto w-full">
+                <!-- Search & Navigation Sub-Tabs -->
+                <div class="bg-zinc-950 border border-zinc-800 p-4 space-y-3 font-mono">
+                    <div class="flex items-center space-x-2 border border-zinc-700 px-3 py-2 bg-black">
+                        <span class="text-zinc-400">🔍</span>
+                        <input type="text" id="data-search-input" oninput="renderDataView()" placeholder="Filter active/hidden words by kanji, reading, meaning, tag..." class="w-full bg-black text-xs text-white focus:outline-none placeholder-zinc-600">
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-2">
+                        <div class="flex items-center space-x-2">
+                            <button onclick="switchDataSubTab('in-review')" id="subtab-btn-in-review" class="px-3 py-1 text-xs font-bold bg-white text-black border border-white uppercase">IN REVIEW</button>
+                            <button onclick="switchDataSubTab('hidden')" id="subtab-btn-hidden" class="px-3 py-1 text-xs font-bold text-zinc-400 hover:bg-zinc-900 border border-zinc-800 uppercase">HIDDEN WORDS</button>
+                            <button onclick="switchDataSubTab('by-tag')" id="subtab-btn-by-tag" class="px-3 py-1 text-xs font-bold text-zinc-400 hover:bg-zinc-900 border border-zinc-800 uppercase">BY TAG</button>
+                        </div>
+                        
+                        <button onclick="toggleBackupSection()" class="px-3 py-1 text-xs font-bold text-zinc-300 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 uppercase" title="CSV Import & JSON Backup Sync">
+                            💾 CSV / BACKUP SYNC
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Collapsible Backup & Import Section -->
+                <div id="data-backup-section" class="hidden bg-zinc-950 border-2 border-white p-4 space-y-4 font-mono">
+                    <div class="flex justify-between items-center border-b border-zinc-800 pb-2">
+                        <h3 class="text-xs font-bold text-white uppercase">// DATASET MANAGEMENT & BACKUP SYNC</h3>
+                        <button onclick="toggleBackupSection()" class="text-zinc-400 hover:text-white font-bold">&times;</button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        <!-- CSV Import -->
+                        <div class="bg-black border border-zinc-800 p-3 space-y-2">
+                            <div class="font-bold text-zinc-200">// IMPORT CSV DATASET</div>
+                            <p class="text-[11px] text-zinc-400 leading-relaxed">Headers: word, word reading, word meaning, word furigana, sentence, sentence meaning, sentence furigana, notes, pitch accent, pitch accent notes, frequency.</p>
+                            <input type="file" id="csv-file-input" accept=".csv" onchange="handleCSVImport(event)" class="w-full text-xs text-zinc-300 border border-zinc-700 p-1.5 bg-zinc-950">
+                        </div>
+
+                        <!-- JSON Backup / Restore -->
+                        <div class="bg-black border border-zinc-800 p-3 space-y-2">
+                            <div class="font-bold text-zinc-200">// JSON BACKUP & RESTORE</div>
+                            <p class="text-[11px] text-zinc-400 leading-relaxed">Preserves vocab dataset, user state (favorites, tags, hidden mapping), and lastSortedIndex.</p>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button onclick="exportJSONBackup()" class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-xs font-bold text-white">EXPORT BACKUP (JSON)</button>
+                                <label class="px-3 py-1.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-xs font-bold text-white cursor-pointer">
+                                    <span>IMPORT BACKUP</span>
+                                    <input type="file" accept=".json" class="hidden" onchange="importJSONBackup(event)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- First Sort Index Configuration -->
+                        <div class="bg-black border border-zinc-800 p-3 space-y-2">
+                            <div class="font-bold text-zinc-200">// FIRST SORT INDEX</div>
+                            <p class="text-[11px] text-zinc-400 leading-relaxed">0-BASED INDEX POSITION (DEFAULT: 0). RE-ALIGN STAGE 1 STARTING WORD.</p>
+                            <div class="flex items-center space-x-2 pt-1">
+                                <input type="number" id="sort-index-config-input" min="0" value="0" class="w-20 px-2 py-1 bg-zinc-950 border border-zinc-700 text-white font-mono text-xs text-center">
+                                <button onclick="requestSetSortIndex()" class="px-3 py-1 bg-white text-black font-bold border border-white hover:bg-zinc-200 text-xs">SET INDEX</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Sub-Tab Content Area -->
+                <div class="flex-1 overflow-y-auto min-h-[350px]">
+                    <!-- Sub-Tab 1: Dense Wrapping Grid of Blocky Japanese Word Pills -->
+                    <div id="data-subtab-in-review" class="flex flex-wrap gap-2 p-2">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- Sub-Tab 2: Hidden Words List -->
+                    <div id="data-subtab-hidden" class="hidden space-y-2 p-2">
+                        <!-- Injected via JS -->
+                    </div>
+
+                    <!-- Sub-Tab 3: By Tag View -->
+                    <div id="data-subtab-by-tag" class="hidden space-y-3 p-2">
+                        <div class="flex items-center space-x-2 mb-4 font-mono">
+                            <span class="text-xs text-zinc-400">SELECT TAG:</span>
+                            <select id="data-tag-selector" onchange="renderDataView()" class="bg-black border border-zinc-700 px-3 py-1 text-xs text-white">
+                                <!-- Injected via JS -->
+                            </select>
+                        </div>
+                        <div id="data-tag-results" class="space-y-2">
+                            <!-- Injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Floating Hover Tooltip for Compact Pills -->
+    <div id="data-tooltip" class="fixed hidden bg-white text-black p-2 font-mono text-xs shadow-2xl border border-black z-50 max-w-xs pointer-events-none">
+        <div id="tooltip-reading" class="text-[11px] text-zinc-600 font-bold"></div>
+        <div id="tooltip-meaning" class="text-xs font-bold text-black mt-0.5"></div>
+    </div>
+
+    <!-- Field Visibility Matrix Modal -->
+    <div id="field-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 font-mono">
+        <div class="bg-black border-2 border-white p-5 w-full max-w-md space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-white pb-2">
+                <h3 class="text-sm font-bold text-white">// FIELD DISPLAY CONFIGURATION</h3>
+                <button onclick="toggleFieldModal()" class="text-white font-bold text-lg">&times;</button>
+            </div>
+            <div class="space-y-2 text-xs">
+                <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">// ENABLED VISIBLE FIELDS</div>
+                <div id="field-checkbox-container" class="space-y-1.5 border border-zinc-800 p-3 bg-zinc-950">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+            <button onclick="toggleFieldModal()" class="w-full py-2 bg-white text-black font-bold text-xs border border-white">APPLY & CLOSE</button>
+        </div>
+    </div>
+
+    <!-- Spotlight Search Modal -->
+    <div id="spotlight-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-start justify-center pt-20 p-4 font-mono">
+        <div class="bg-black border-2 border-white w-full max-w-2xl space-y-3 p-4 shadow-2xl">
+            <div class="flex items-center space-x-2 border-b border-white pb-3">
+                <span class="text-lg">🔍</span>
+                <input type="text" id="spotlight-input" oninput="handleSpotlightSearch(this.value)" placeholder="Type to search word, reading, or meaning..." class="w-full bg-black text-white text-sm focus:outline-none placeholder-zinc-600">
+                <button onclick="toggleSpotlightModal()" class="text-white font-bold px-2 py-1 border border-zinc-700 text-xs">ESC</button>
+            </div>
+            <div id="spotlight-results" class="max-h-96 overflow-y-auto space-y-1.5 pr-1 text-xs">
+                <div class="text-zinc-500 text-center py-6">Start typing to search vocabulary...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Info Modal -->
+    <div id="shortcut-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 font-mono">
+        <div class="bg-black border-2 border-white p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-white pb-2">
+                <h3 class="text-sm font-bold text-white">// KEYBOARD SHORTCUTS</h3>
+                <button onclick="toggleShortcutModal()" class="text-white font-bold text-lg">&times;</button>
+            </div>
+            <div class="space-y-2 text-xs text-zinc-300">
+                <div class="flex justify-between border-b border-zinc-800 pb-1">
+                    <span>Previous Word</span>
+                    <kbd class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-white">←</kbd>
+                </div>
+                <div class="flex justify-between border-b border-zinc-800 pb-1">
+                    <span>Next Word</span>
+                    <kbd class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-white">→</kbd>
+                </div>
+                <div class="flex justify-between border-b border-zinc-800 pb-1">
+                    <span>Toggle Hidden Status</span>
+                    <kbd class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-white">H</kbd>
+                </div>
+                <div class="flex justify-between border-b border-zinc-800 pb-1">
+                    <span>Spotlight Search</span>
+                    <kbd class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-white">Ctrl + K</kbd>
+                </div>
+                <div class="flex justify-between border-b border-zinc-800 pb-1">
+                    <span>Confirm Modal Action</span>
+                    <kbd class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-white">ENTER</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span>Close Modal / Cancel</span>
+                    <kbd class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-white">ESC</kbd>
+                </div>
+            </div>
+            <button onclick="toggleShortcutModal()" class="w-full py-1.5 bg-white text-black font-bold text-xs border border-white">CLOSE</button>
+        </div>
+    </div>
+
+    <!-- Data View Action Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 font-mono">
+        <div class="bg-black border-2 border-white p-6 w-full max-w-sm space-y-4 shadow-2xl text-center">
+            <div id="confirm-title" class="text-sm font-bold text-white uppercase border-b border-zinc-800 pb-2">// CONFIRM ACTION</div>
+            <div id="confirm-message" class="text-xs text-zinc-300 py-2 leading-relaxed">Are you sure you want to change this word's hidden status?</div>
+            <div class="flex space-x-2 pt-2">
+                <button id="confirm-cancel-btn" onclick="closeConfirmModal()" class="flex-1 py-2 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-xs font-bold text-white">CANCEL [ESC]</button>
+                <button id="confirm-ok-btn" class="flex-1 py-2 bg-white text-black font-bold text-xs border border-white hover:bg-zinc-200">CONFIRM [ENTER]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Message Container -->
+    <div id="toast-message" class="fixed bottom-4 right-4 bg-white text-black font-mono text-xs px-4 py-2 border-2 border-black hidden shadow-2xl z-50 font-bold"></div>
+
+    <script>
+        // --- Sample Dataset ---
+        const sampleDataset = [
+            {
+                word: "日本語",
+                "word reading": "にほんご",
+                "word meaning": "Japanese language",
+                "word furigana": "日本[にほん]語[ご]",
+                sentence: "私は毎日日本語を勉強しています。",
+                "sentence meaning": "I study Japanese every day.",
+                "sentence furigana": "私[わたし]は毎日[まいにち]日本[にほん]語[ご]を勉強[べんきょう]しています。",
+                notes: "Standard compound noun.",
+                "pitch accent": "0",
+                "pitch accent notes": "Heiban",
+                frequency: "12"
+            },
+            {
+                word: "食べる",
+                "word reading": "たべる",
+                "word meaning": "to eat",
+                "word furigana": "食[た]べる",
+                sentence: "朝ごはんはパンを食べました。",
+                "sentence meaning": "I ate bread for breakfast.",
+                "sentence furigana": "朝[あさ]ごはんはパンを食[た]べました。",
+                notes: "Ichidan verb.",
+                "pitch accent": "2",
+                "pitch accent notes": "Nakadaka",
+                frequency: "45"
+            },
+            {
+                word: "約束",
+                "word reading": "やくそく",
+                "word meaning": "promise; agreement",
+                "word furigana": "約[やく]束[そく]",
+                sentence: "友達と約束があります。",
+                "sentence meaning": "I have an appointment with a friend.",
+                "sentence furigana": "友[とも]達[だち]と約[やく]束[そく]があります。",
+                notes: "Suru verb noun.",
+                "pitch accent": "0",
+                "pitch accent notes": "Heiban",
+                frequency: "320"
+            },
+            {
+                word: "太陽",
+                "word reading": "たいよう",
+                "word meaning": "sun; solar",
+                "word furigana": "太[たい]陽[よう]",
+                sentence: "太陽が東から昇ります。",
+                "sentence meaning": "The sun rises in the east.",
+                "sentence furigana": "太[たい]陽[よう]が東[ひがし]から昇[のぼ]ります。",
+                notes: "Astronomy term.",
+                "pitch accent": "1",
+                "pitch accent notes": "Atamadaka",
+                frequency: "510"
+            },
+            {
+                word: "静か",
+                "word reading": "しずか",
+                "word meaning": "quiet; peaceful",
+                "word furigana": "静[しず]か",
+                sentence: "この図書館はとても静かです。",
+                "sentence meaning": "This library is very quiet.",
+                "sentence furigana": "この図[と]書[しょ]館[かん]はとても静[しず]かです。",
+                notes: "Na-adjective.",
+                "pitch accent": "1",
+                "pitch accent notes": "Atamadaka",
+                frequency: "180"
+            }
+        ];
+
+        // --- Core Application State (Strict Original Format) ---
+        let vocabData = [];
+        let userState = {
+            favorites: {},
+            tags: {},
+            hidden: {},
+            lastSortedIndex: 0
+        };
+
+        // Field Visibility Configuration
+        let visibleFields = {
+            word: true,
+            "word reading": true,
+            "word meaning": true,
+            "pitch accent": true,
+            "pitch accent notes": true,
+            sentence: true,
+            "sentence meaning": true,
+            notes: true,
+            frequency: true
+        };
+
+        let currentStage = 'sort'; // 'sort', 'review', 'data'
+        let currentReviewOrderMode = 'order'; // 'order' or 'daily'
+        let currentDataSubTab = 'in-review'; // 'in-review', 'hidden', 'by-tag'
+        
+        let reviewIndex = 0;
+        let globalFurigana = true;
+        let currentFont = 'noto';
+        let pendingConfirmCallback = null;
+
+        // --- Lifecycle & Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadApplicationState();
+            setupKeyboardShortcuts();
+            initFieldModalContainer();
+
+            updateDeckHeaderStats();
+            renderCurrentStage();
+        });
+
+        // --- State Persistence & Migration (Exact Original Schema) ---
+        function loadApplicationState() {
+            try {
+                const storedVocab = localStorage.getItem('nihongo_vocab_data');
+                const storedState = localStorage.getItem('nihongo_user_state');
+
+                if (storedVocab) {
+                    vocabData = JSON.parse(storedVocab);
+                } else {
+                    vocabData = [...sampleDataset];
+                }
+
+                if (storedState) {
+                    const parsedState = JSON.parse(storedState);
+                    userState = {
+                        favorites: parsedState.favorites || {},
+                        tags: parsedState.tags || {},
+                        hidden: parsedState.hidden || {},
+                        lastSortedIndex: typeof parsedState.lastSortedIndex === 'number' ? parsedState.lastSortedIndex : 0
+                    };
+                } else {
+                    userState = { favorites: {}, tags: {}, hidden: {}, lastSortedIndex: 0 };
+                }
+
+                // Clean schema verification: strip hidden/tags if attached to items
+                vocabData.forEach((item, i) => {
+                    if (item.hidden !== undefined) {
+                        if (item.hidden) userState.hidden[i] = true;
+                        delete item.hidden;
+                    }
+                    if (item.tags !== undefined) {
+                        if (Array.isArray(item.tags) && item.tags.length > 0) {
+                            userState.tags[i] = item.tags;
+                        }
+                        delete item.tags;
+                    }
+                });
+
+                clampLastSortedIndex();
+
+            } catch (e) {
+                console.error("Failed loading local storage state", e);
+                vocabData = [...sampleDataset];
+                userState = { favorites: {}, tags: {}, hidden: {}, lastSortedIndex: 0 };
+            }
+
+            saveApplicationState();
+        }
+
+        function calculateSmartInitialIndex(words, stateHidden) {
+            if (!words || words.length === 0) return 0;
+            let highestHiddenIndex = -1;
+            
+            for (let i = 0; i < words.length; i++) {
+                if (stateHidden && Boolean(stateHidden[i]) === true) {
+                    highestHiddenIndex = i;
+                }
+            }
+
+            if (highestHiddenIndex === -1) return 0;
+            return Math.min(highestHiddenIndex + 1, words.length - 1);
+        }
+
+        function clampLastSortedIndex() {
+            if (vocabData.length === 0) {
+                userState.lastSortedIndex = 0;
+                return;
+            }
+            if (userState.lastSortedIndex < 0) userState.lastSortedIndex = 0;
+            if (userState.lastSortedIndex >= vocabData.length) userState.lastSortedIndex = vocabData.length - 1;
+        }
+
+        function saveApplicationState() {
+            try {
+                localStorage.setItem('nihongo_vocab_data', JSON.stringify(vocabData));
+                localStorage.setItem('nihongo_user_state', JSON.stringify(userState));
+            } catch(e) {}
+        }
+
+        function updateDeckHeaderStats() {
+            const total = vocabData.length;
+            let hiddenCount = 0;
+            for (let i = 0; i < total; i++) {
+                if (userState.hidden[i]) hiddenCount++;
+            }
+            const activeCount = total - hiddenCount;
+
+            const stats = document.getElementById('deck-stats');
+            if (stats) {
+                stats.innerText = `TOTAL: ${total} | REVIEW: ${activeCount} | HIDDEN: ${hiddenCount}`;
+            }
+        }
+
+        // --- Seeded PRNG (Mulberry32 for Daily Shuffle) ---
+        function getDailyDateSeed() {
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            let hash = 0;
+            for (let i = 0; i < dateStr.length; i++) {
+                hash = Math.imul(31, hash) + dateStr.charCodeAt(i) | 0;
+            }
+            return hash >>> 0;
+        }
+
+        function mulberry32(a) {
+            return function() {
+                var t = a += 0x6D2B79F5;
+                t = Math.imul(t ^ t >>> 15, t | 1);
+                t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+
+        function getActiveReviewQueue() {
+            const selectedTag = document.getElementById('review-tag-filter')?.value || 'all';
+            
+            let activeIndices = [];
+            vocabData.forEach((_, idx) => {
+                if (!userState.hidden[idx]) {
+                    const itemTags = userState.tags[idx] || [];
+                    if (selectedTag === 'all' || itemTags.includes(selectedTag)) {
+                        activeIndices.push(idx);
+                    }
+                }
+            });
+
+            if (currentReviewOrderMode === 'daily') {
+                const seed = getDailyDateSeed();
+                const rng = mulberry32(seed);
+                for (let i = activeIndices.length - 1; i > 0; i--) {
+                    const j = Math.floor(rng() * (i + 1));
+                    [activeIndices[i], activeIndices[j]] = [activeIndices[j], activeIndices[i]];
+                }
+            }
+
+            return activeIndices;
+        }
+
+        // --- Furigana Formatting Helper ---
+        function formatFurigana(text, furiganaText, enabled = true) {
+            const raw = furiganaText || text || "";
+            if (!enabled) return raw.replace(/\[(.*?)\]/g, '');
+            return raw.replace(/([^\[]+?)\[(.*?)\]/g, '<ruby>$1<rt>$2</rt></ruby>');
+        }
+
+        // --- Stage Navigation ---
+        function switchStage(stage) {
+            currentStage = stage;
+            ['sort', 'review', 'data'].forEach(s => {
+                const sec = document.getElementById(`stage-${s}`);
+                const btn = document.getElementById(`tab-btn-${s}`);
+                if (sec) sec.classList.add('hidden');
+                if (btn) btn.className = "px-3 py-1.5 text-xs font-bold text-zinc-300 hover:bg-zinc-900 border-2 border-zinc-800 uppercase";
+            });
+
+            const activeSec = document.getElementById(`stage-${stage}`);
+            const activeBtn = document.getElementById(`tab-btn-${stage}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+            if (activeBtn) activeBtn.className = "px-3 py-1.5 text-xs font-bold bg-white text-black border-2 border-white uppercase";
+
+            renderCurrentStage();
+        }
+
+        function renderCurrentStage() {
+            updateDeckHeaderStats();
+            populateTagDropdowns();
+
+            if (currentStage === 'sort') renderSortStage();
+            else if (currentStage === 'review') renderReviewStage();
+            else if (currentStage === 'data') renderDataView();
+        }
+
+        function populateTagDropdowns() {
+            let allTags = new Set();
+            Object.values(userState.tags || {}).forEach(arr => {
+                if (Array.isArray(arr)) arr.forEach(t => allTags.add(t));
+            });
+            
+            // Review Dropdown
+            const reviewDropdown = document.getElementById('review-tag-filter');
+            if (reviewDropdown) {
+                const currVal = reviewDropdown.value || 'all';
+                reviewDropdown.innerHTML = `<option value="all">TAG: ALL</option>`;
+                allTags.forEach(t => {
+                    reviewDropdown.innerHTML += `<option value="${t}">TAG: ${t}</option>`;
+                });
+                reviewDropdown.value = allTags.has(currVal) ? currVal : 'all';
+            }
+
+            // Data View Tag Selector
+            const dataDropdown = document.getElementById('data-tag-selector');
+            if (dataDropdown) {
+                const currVal = dataDropdown.value;
+                dataDropdown.innerHTML = "";
+                if (allTags.size === 0) {
+                    dataDropdown.innerHTML = `<option value="">NO TAGS CREATED</option>`;
+                } else {
+                    allTags.forEach(t => {
+                        dataDropdown.innerHTML += `<option value="${t}">${t}</option>`;
+                    });
+                    if (currVal && allTags.has(currVal)) dataDropdown.value = currVal;
+                }
+            }
+        }
+
+        // --- STAGE 1: FIRST SORT LOGIC ---
+        function renderSortStage() {
+            clampLastSortedIndex();
+            const container = document.getElementById('sort-card-container');
+            const totalLabel = document.getElementById('sort-total-label');
+            const jumpInput = document.getElementById('sort-jump-input');
+
+            if (!container) return;
+            totalLabel.innerText = `/ ${vocabData.length}`;
+            jumpInput.value = vocabData.length > 0 ? userState.lastSortedIndex + 1 : 0;
+
+            if (vocabData.length === 0) {
+                container.innerHTML = `<div class="m-auto text-center text-zinc-500 font-mono text-xs">DECK IS EMPTY. IMPORT CSV OR RESTORE JSON BACKUP.</div>`;
+                return;
+            }
+
+            const idx = userState.lastSortedIndex;
+            const item = vocabData[idx];
+            const isHidden = Boolean(userState.hidden[idx]);
+            const isFav = Boolean(userState.favorites[idx]);
+            const itemTags = userState.tags[idx] || [];
+
+            container.innerHTML = `
+                <!-- Top Card Meta Bar -->
+                <div class="flex justify-between items-center text-xs font-mono border-b border-zinc-800 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-white font-bold">#[${idx + 1}]</span>
+                        ${visibleFields['frequency'] && item.frequency ? `<span class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-300">FREQ: ${item.frequency}</span>` : ''}
+                        ${visibleFields['pitch accent'] && item['pitch accent'] ? `<span class="bg-zinc-900 border border-zinc-700 text-white px-1.5 py-0.5 text-[10px]">PITCH: ${item['pitch accent']} ${item['pitch accent notes'] ? `(${item['pitch accent notes']})` : ''}</span>` : ''}
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <button onclick="toggleFav(${idx})" class="text-base hover:opacity-80">${isFav ? '⭐' : '☆'}</button>
+                        <span class="px-2.5 py-1 text-xs font-bold border font-mono uppercase ${isHidden ? 'bg-sakura-900 text-sakura-100 border-sakura-500' : 'bg-zinc-900 text-emerald-400 border-emerald-600'}">
+                            ${isHidden ? '● HIDDEN' : '✓ IN REVIEW'}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Word Core Body -->
+                <div class="my-auto text-center space-y-4 py-6">
+                    ${visibleFields['word'] ? `<div class="text-5xl md:text-6xl jp-font font-bold text-white tracking-tight">${formatFurigana(item.word, item['word furigana'], globalFurigana)}</div>` : ''}
+                    ${visibleFields['word reading'] && item['word reading'] ? `<div class="text-lg font-mono text-zinc-400">${item['word reading']}</div>` : ''}
+                    ${visibleFields['word meaning'] && item['word meaning'] ? `<div class="text-xl font-mono font-bold text-white">${item['word meaning']}</div>` : ''}
+                    
+                    ${visibleFields['sentence'] && item.sentence ? `
+                        <div class="bg-zinc-950 p-4 border border-zinc-800 space-y-1.5 text-left my-3 font-mono">
+                            <div class="text-sm jp-font text-white leading-relaxed">${formatFurigana(item.sentence, item['sentence furigana'], globalFurigana)}</div>
+                            ${visibleFields['sentence meaning'] && item['sentence meaning'] ? `<div class="text-xs text-zinc-400">${item['sentence meaning']}</div>` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    ${visibleFields['notes'] && item.notes ? `<div class="text-xs text-zinc-400 bg-zinc-950 p-2.5 border border-zinc-800 text-left font-mono"><span class="text-white font-bold">NOTE:</span> ${item.notes}</div>` : ''}
+                </div>
+
+                <!-- Footer Tags & Rapid Controls -->
+                <div class="space-y-4 border-t border-zinc-800 pt-3">
+                    <div class="flex items-center justify-between text-xs font-mono">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            ${itemTags.map(t => `
+                                <span class="inline-flex items-center bg-zinc-900 text-zinc-200 border border-zinc-700 px-2 py-0.5 text-[10px]">
+                                    ${t}
+                                    <button onclick="removeTagFromWord(${idx}, '${t}')" class="ml-1 text-zinc-400 hover:text-white">&times;</button>
+                                </span>
+                            `).join('')}
+                            <button onclick="promptAddTag(${idx})" class="px-2 py-0.5 border border-zinc-700 text-zinc-400 hover:text-white text-[10px]">+ TAG</button>
+                        </div>
+                        <span class="text-zinc-500 text-[10px] hidden md:inline">USE ← / → TO MOVE • [H] TO TOGGLE</span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-3 gap-2 font-mono">
+                        <button onclick="navigateSort(-1)" class="py-2.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-xs font-bold text-white">◀ PREVIOUS [←]</button>
+                        
+                        <button onclick="toggleSortCurrentHidden()" class="py-2.5 font-bold text-xs border uppercase transition-colors ${isHidden ? 'bg-zinc-900 text-emerald-400 border-emerald-600 hover:bg-zinc-800' : 'bg-sakura-600 text-white border-sakura-500 hover:bg-sakura-700'}">
+                            ${isHidden ? 'RESTORE TO REVIEW [H]' : 'MARK HIDDEN [H]'}
+                        </button>
+                        
+                        <button onclick="navigateSort(1)" class="py-2.5 bg-white text-black font-bold hover:bg-zinc-200 text-xs border border-white">NEXT [→] ▶</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function navigateSort(dir) {
+            if (vocabData.length === 0) return;
+            userState.lastSortedIndex += dir;
+            clampLastSortedIndex();
+            saveApplicationState();
+            renderSortStage();
+        }
+
+        function jumpSortIndex(val) {
+            let idx = parseInt(val) - 1;
+            if (isNaN(idx)) return;
+            userState.lastSortedIndex = idx;
+            clampLastSortedIndex();
+            saveApplicationState();
+            renderSortStage();
+        }
+
+        function requestSetSortIndex() {
+            const input = document.getElementById('sort-index-config-input');
+            let val = parseInt(input ? input.value : 0);
+            if (isNaN(val)) val = 0;
+            
+            const maxIndex = Math.max(0, vocabData.length - 1);
+            if (val < 0) val = 0;
+            if (val > maxIndex) val = maxIndex;
+
+            const wordObj = vocabData[val];
+            const targetWordName = wordObj ? `"${wordObj.word}"` : "N/A";
+            const confirmMsg = `Set First Sort starting index to ${val} (${targetWordName})?`;
+
+            requestConfirmModal(confirmMsg, () => {
+                userState.lastSortedIndex = val;
+                saveApplicationState();
+                renderCurrentStage();
+                showToast(`First Sort index set to ${val}`);
+            });
+        }
+
+        function toggleSortCurrentHidden() {
+            if (vocabData.length === 0) return;
+            const idx = userState.lastSortedIndex;
+            if (userState.hidden[idx]) {
+                delete userState.hidden[idx];
+            } else {
+                userState.hidden[idx] = true;
+                // Auto-advance if marked hidden
+                if (userState.lastSortedIndex < vocabData.length - 1) {
+                    userState.lastSortedIndex++;
+                }
+            }
+            saveApplicationState();
+            renderSortStage();
+        }
+
+        // --- STAGE 2: REVIEW LOGIC ---
+        function renderReviewStage() {
+            const queue = getActiveReviewQueue();
+            const container = document.getElementById('review-card-container');
+            const totalLabel = document.getElementById('review-total-label');
+            const jumpInput = document.getElementById('review-jump-input');
+
+            if (!container) return;
+            totalLabel.innerText = `/ ${queue.length}`;
+
+            if (queue.length === 0) {
+                container.innerHTML = `
+                    <div class="m-auto text-center space-y-2 font-mono py-12">
+                        <div class="text-3xl">🎉</div>
+                        <div class="text-sm text-zinc-300 font-bold">ALL WORDS IN THIS QUEUE ARE MARKED HIDDEN!</div>
+                        <div class="text-xs text-zinc-500">Un-hide words in Stage 3 or select a different tag filter to continue studying.</div>
+                    </div>
+                `;
+                jumpInput.value = 0;
+                return;
+            }
+
+            if (reviewIndex < 0) reviewIndex = 0;
+            if (reviewIndex >= queue.length) reviewIndex = queue.length - 1;
+            jumpInput.value = reviewIndex + 1;
+
+            const actualIdx = queue[reviewIndex];
+            const item = vocabData[actualIdx];
+            const isFav = Boolean(userState.favorites[actualIdx]);
+            const itemTags = userState.tags[actualIdx] || [];
+
+            container.innerHTML = `
+                <!-- Meta Header Bar -->
+                <div class="flex justify-between items-center text-xs font-mono border-b border-zinc-800 pb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-white font-bold">QUEUE [${reviewIndex + 1}/${queue.length}]</span>
+                        <span class="text-zinc-500">#[${actualIdx + 1}]</span>
+                        ${visibleFields['frequency'] && item.frequency ? `<span class="bg-zinc-900 border border-zinc-700 px-1.5 py-0.5 text-[10px] text-zinc-300">FREQ: ${item.frequency}</span>` : ''}
+                        ${visibleFields['pitch accent'] && item['pitch accent'] ? `<span class="bg-zinc-900 border border-zinc-700 text-white px-1.5 py-0.5 text-[10px]">PITCH: ${item['pitch accent']} ${item['pitch accent notes'] ? `(${item['pitch accent notes']})` : ''}</span>` : ''}
+                    </div>
+
+                    <div class="flex items-center space-x-3">
+                        <button onclick="toggleFav(${actualIdx})" class="text-base hover:opacity-80">${isFav ? '⭐' : '☆'}</button>
+                        <span class="px-2 py-0.5 text-[10px] font-bold border border-emerald-600 bg-zinc-900 text-emerald-400 uppercase font-mono">ACTIVE STUDY</span>
+                    </div>
+                </div>
+
+                <!-- Browser-Style Enabled Fields Display -->
+                <div class="my-auto text-center space-y-4 py-6">
+                    ${visibleFields['word'] ? `<div class="text-5xl md:text-6xl jp-font font-bold text-white tracking-tight">${formatFurigana(item.word, item['word furigana'], globalFurigana)}</div>` : ''}
+                    ${visibleFields['word reading'] && item['word reading'] ? `<div class="text-lg font-mono text-zinc-400">${item['word reading']}</div>` : ''}
+                    ${visibleFields['word meaning'] && item['word meaning'] ? `<div class="text-xl font-mono font-bold text-white">${item['word meaning']}</div>` : ''}
+
+                    ${visibleFields['sentence'] && item.sentence ? `
+                        <div class="bg-zinc-950 p-4 border border-zinc-800 space-y-1.5 text-left my-3 font-mono">
+                            <div class="text-sm jp-font text-white leading-relaxed">${formatFurigana(item.sentence, item['sentence furigana'], globalFurigana)}</div>
+                            ${visibleFields['sentence meaning'] && item['sentence meaning'] ? `<div class="text-xs text-zinc-400">${item['sentence meaning']}</div>` : ''}
+                        </div>
+                    ` : ''}
+
+                    ${visibleFields['notes'] && item.notes ? `<div class="text-xs text-zinc-400 bg-zinc-950 p-2.5 border border-zinc-800 text-left font-mono"><span class="text-white font-bold">NOTE:</span> ${item.notes}</div>` : ''}
+                </div>
+
+                <!-- Footer & Action Controls -->
+                <div class="space-y-4 border-t border-zinc-800 pt-3">
+                    <div class="flex items-center justify-between text-xs font-mono">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            ${itemTags.map(t => `
+                                <span class="inline-flex items-center bg-zinc-900 text-zinc-200 border border-zinc-700 px-2 py-0.5 text-[10px]">
+                                    ${t}
+                                    <button onclick="removeTagFromWord(${actualIdx}, '${t}')" class="ml-1 text-zinc-400 hover:text-white">&times;</button>
+                                </span>
+                            `).join('')}
+                            <button onclick="promptAddTag(${actualIdx})" class="px-2 py-0.5 border border-zinc-700 text-zinc-400 hover:text-white text-[10px]">+ TAG</button>
+                        </div>
+                        <span class="text-zinc-500 text-[10px] hidden md:inline">USE ← / → TO MOVE • [H] TO MARK HIDDEN</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 font-mono">
+                        <button onclick="navigateReview(-1)" class="py-2.5 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-xs font-bold text-white">◀ PREVIOUS [←]</button>
+                        
+                        <button onclick="hideCurrentReviewWord(${actualIdx})" class="py-2.5 bg-sakura-600 text-white font-bold hover:bg-sakura-700 text-xs border border-sakura-500 uppercase">
+                            MARK HIDDEN [H]
+                        </button>
+
+                        <button onclick="navigateReview(1)" class="py-2.5 bg-white text-black font-bold hover:bg-zinc-200 text-xs border border-white">NEXT [→] ▶</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleReviewOrderMode() {
+            currentReviewOrderMode = currentReviewOrderMode === 'order' ? 'daily' : 'order';
+            const btn = document.getElementById('review-order-btn');
+            if (btn) {
+                btn.innerText = currentReviewOrderMode === 'order' ? 'IN ORDER' : 'DAILY SHUFFLE 🔀';
+            }
+            reviewIndex = 0;
+            renderReviewStage();
+        }
+
+        function onReviewFilterChange() {
+            reviewIndex = 0;
+            renderReviewStage();
+        }
+
+        function navigateReview(dir) {
+            const queue = getActiveReviewQueue();
+            if (queue.length === 0) return;
+            reviewIndex += dir;
+            if (reviewIndex < 0) reviewIndex = queue.length - 1;
+            if (reviewIndex >= queue.length) reviewIndex = 0;
+            renderReviewStage();
+        }
+
+        function jumpReviewIndex(val) {
+            const queue = getActiveReviewQueue();
+            let idx = parseInt(val) - 1;
+            if (isNaN(idx)) return;
+            if (idx < 0) idx = 0;
+            if (idx >= queue.length) idx = queue.length - 1;
+            reviewIndex = idx;
+            renderReviewStage();
+        }
+
+        function hideCurrentReviewWord(actualIdx) {
+            userState.hidden[actualIdx] = true;
+            saveApplicationState();
+            
+            const queue = getActiveReviewQueue();
+            if (reviewIndex >= queue.length && queue.length > 0) {
+                reviewIndex = queue.length - 1;
+            }
+            updateDeckHeaderStats();
+            renderReviewStage();
+            showToast("Word marked Hidden");
+        }
+
+        // --- STAGE 3: DATA VIEW LOGIC ---
+        function switchDataSubTab(subtab) {
+            currentDataSubTab = subtab;
+            ['in-review', 'hidden', 'by-tag'].forEach(t => {
+                const sec = document.getElementById(`data-subtab-${t}`);
+                const btn = document.getElementById(`subtab-btn-${t}`);
+                if (sec) sec.classList.add('hidden');
+                if (btn) btn.className = "px-3 py-1 text-xs font-bold text-zinc-400 hover:bg-zinc-900 border border-zinc-800 uppercase";
+            });
+
+            const activeSec = document.getElementById(`data-subtab-${subtab}`);
+            const activeBtn = document.getElementById(`subtab-btn-${subtab}`);
+            if (activeSec) activeSec.classList.remove('hidden');
+            if (activeBtn) activeBtn.className = "px-3 py-1 text-xs font-bold bg-white text-black border border-white uppercase";
+
+            renderDataView();
+        }
+
+        function renderDataView() {
+            const searchQ = (document.getElementById('data-search-input')?.value || '').toLowerCase().trim();
+
+            if (currentDataSubTab === 'in-review') {
+                renderDataInReviewGrid(searchQ);
+            } else if (currentDataSubTab === 'hidden') {
+                renderDataHiddenList(searchQ);
+            } else if (currentDataSubTab === 'by-tag') {
+                renderDataByTagList(searchQ);
+            }
+        }
+
+        // Sub-Tab 1: Compact View Grid
+        function renderDataInReviewGrid(searchQ) {
+            const container = document.getElementById('data-subtab-in-review');
+            if (!container) return;
+            container.innerHTML = "";
+
+            const activeWords = vocabData.map((item, idx) => ({ item, idx })).filter(obj => {
+                if (userState.hidden[obj.idx]) return false;
+                if (!searchQ) return true;
+                return matchesSearchQuery(obj.item, obj.idx, searchQ);
+            });
+
+            if (activeWords.length === 0) {
+                container.innerHTML = `<div class="w-full text-center text-zinc-500 font-mono text-xs py-8">NO MATCHING ACTIVE WORDS FOUND.</div>`;
+                return;
+            }
+
+            activeWords.forEach(obj => {
+                const pill = document.createElement('button');
+                pill.className = "px-3 py-1.5 bg-zinc-950 border border-zinc-700 hover:border-white hover:bg-zinc-900 text-white font-bold jp-font text-base cursor-pointer transition-colors shadow-sm";
+                pill.textContent = obj.item.word || '';
+
+                pill.onmouseenter = (e) => showTooltip(e, obj.item['word reading'], obj.item['word meaning']);
+                pill.onmousemove = (e) => positionTooltip(e);
+                pill.onmouseleave = () => hideTooltip();
+
+                pill.onclick = () => {
+                    hideTooltip();
+                    requestConfirmModal(
+                        `Mark "${obj.item.word}" as Hidden?`,
+                        () => {
+                            userState.hidden[obj.idx] = true;
+                            saveApplicationState();
+                            renderCurrentStage();
+                            showToast(`"${obj.item.word}" marked Hidden`);
+                        }
+                    );
+                };
+
+                container.appendChild(pill);
+            });
+        }
+
+        // Sub-Tab 2: Hidden Words List
+        function renderDataHiddenList(searchQ) {
+            const container = document.getElementById('data-subtab-hidden');
+            if (!container) return;
+            container.innerHTML = "";
+
+            const hiddenWords = vocabData.map((item, idx) => ({ item, idx })).filter(obj => {
+                if (!userState.hidden[obj.idx]) return false;
+                if (!searchQ) return true;
+                return matchesSearchQuery(obj.item, obj.idx, searchQ);
+            });
+
+            if (hiddenWords.length === 0) {
+                container.innerHTML = `<div class="w-full text-center text-zinc-500 font-mono text-xs py-8">NO HIDDEN WORDS MATCH YOUR FILTER.</div>`;
+                return;
+            }
+
+            hiddenWords.forEach(obj => {
+                const itemTags = userState.tags[obj.idx] || [];
+                const row = document.createElement('div');
+                row.className = "bg-zinc-950 border border-zinc-800 p-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs";
+                row.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-white font-bold jp-font text-xl">${obj.item.word || ''}</span>
+                        <span class="text-zinc-400 font-mono">${obj.item['word reading']}</span>
+                        <span class="text-white font-bold font-mono"> - ${obj.item['word meaning']}</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="flex gap-1">
+                            ${itemTags.map(t => `<span class="px-1.5 py-0.5 bg-zinc-900 border border-zinc-700 text-[10px] text-zinc-300">${t}</span>`).join('')}
+                        </div>
+                        <button onclick="requestUnhideWord(${obj.idx})" class="px-3 py-1 bg-white text-black font-bold hover:bg-zinc-200 border border-white text-xs">UNHIDE</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Sub-Tab 3: By Tag View
+        function renderDataByTagList(searchQ) {
+            const container = document.getElementById('data-tag-results');
+            const selectedTag = document.getElementById('data-tag-selector')?.value;
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (!selectedTag) {
+                container.innerHTML = `<div class="text-zinc-500 font-mono text-xs text-center py-6">NO TAG SELECTED OR DECK HAS NO TAGS.</div>`;
+                return;
+            }
+
+            const taggedWords = vocabData.map((item, idx) => ({ item, idx })).filter(obj => {
+                const itemTags = userState.tags[obj.idx] || [];
+                if (!itemTags.includes(selectedTag)) return false;
+                if (!searchQ) return true;
+                return matchesSearchQuery(obj.item, obj.idx, searchQ);
+            });
+
+            if (taggedWords.length === 0) {
+                container.innerHTML = `<div class="text-zinc-500 font-mono text-xs text-center py-6">NO WORDS FOUND FOR TAG "${selectedTag}".</div>`;
+                return;
+            }
+
+            taggedWords.forEach(obj => {
+                const isHidden = Boolean(userState.hidden[obj.idx]);
+                const row = document.createElement('div');
+                row.className = "bg-zinc-950 border border-zinc-800 p-3 flex flex-wrap items-center justify-between gap-2 font-mono text-xs";
+                row.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-white font-bold jp-font text-xl">${obj.item.word || ''}</span>
+                        <span class="text-zinc-400 font-mono">${obj.item['word reading']}</span>
+                        <span class="text-white font-bold font-mono"> - ${obj.item['word meaning']}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-0.5 text-[10px] font-bold border ${isHidden ? 'bg-sakura-900 text-sakura-100 border-sakura-500' : 'bg-zinc-900 text-emerald-400 border-emerald-600'}">
+                            ${isHidden ? 'HIDDEN' : 'IN REVIEW'}
+                        </span>
+                        <button onclick="${isHidden ? `requestUnhideWord(${obj.idx})` : `requestHideWord(${obj.idx})`}" class="px-3 py-1 font-bold border text-xs ${isHidden ? 'bg-white text-black border-white hover:bg-zinc-200' : 'bg-sakura-600 text-white border-sakura-500 hover:bg-sakura-700'}">
+                            ${isHidden ? 'UNHIDE' : 'HIDE'}
+                        </button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function matchesSearchQuery(item, idx, q) {
+            const w = (item.word || "").toLowerCase();
+            const r = (item["word reading"] || "").toLowerCase();
+            const m = (item["word meaning"] || "").toLowerCase();
+            const itemTags = (userState.tags[idx] || []).join(' ').toLowerCase();
+            return w.includes(q) || r.includes(q) || m.includes(q) || itemTags.includes(q);
+        }
+
+        function requestHideWord(idx) {
+            const item = vocabData[idx];
+            requestConfirmModal(`Mark "${item.word}" as Hidden?`, () => {
+                userState.hidden[idx] = true;
+                saveApplicationState();
+                renderCurrentStage();
+                showToast(`"${item.word}" marked Hidden`);
+            });
+        }
+
+        function requestUnhideWord(idx) {
+            const item = vocabData[idx];
+            requestConfirmModal(`Restore "${item.word}" to Active Review?`, () => {
+                delete userState.hidden[idx];
+                saveApplicationState();
+                renderCurrentStage();
+                showToast(`"${item.word}" restored to Review`);
+            });
+        }
+
+        function toggleFav(idx) {
+            if (userState.favorites[idx]) {
+                delete userState.favorites[idx];
+            } else {
+                userState.favorites[idx] = true;
+            }
+            saveApplicationState();
+            renderCurrentStage();
+        }
+
+        function promptAddTag(idx) {
+            const tag = prompt("Enter new tag name:");
+            if (!tag || !tag.trim()) return;
+            const cleanTag = tag.trim();
+            if (!userState.tags[idx]) userState.tags[idx] = [];
+            if (!userState.tags[idx].includes(cleanTag)) {
+                userState.tags[idx].push(cleanTag);
+                saveApplicationState();
+                renderCurrentStage();
+                showToast(`Added tag "${cleanTag}"`);
+            }
+        }
+
+        function removeTagFromWord(idx, tagStr) {
+            if (!userState.tags[idx]) return;
+            userState.tags[idx] = userState.tags[idx].filter(t => t !== tagStr);
+            if (userState.tags[idx].length === 0) delete userState.tags[idx];
+            saveApplicationState();
+            renderCurrentStage();
+        }
+
+        // --- Confirmation Modal ---
+        function requestConfirmModal(message, callback) {
+            pendingConfirmCallback = callback;
+            document.getElementById('confirm-message').innerText = message;
+            
+            const okBtn = document.getElementById('confirm-ok-btn');
+            okBtn.onclick = () => {
+                if (pendingConfirmCallback) pendingConfirmCallback();
+                closeConfirmModal();
+            };
+
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            pendingConfirmCallback = null;
+        }
+
+        // --- Tooltip Handlers ---
+        function showTooltip(evt, reading, meaning) {
+            const tooltip = document.getElementById('data-tooltip');
+            document.getElementById('tooltip-reading').innerText = reading || '';
+            document.getElementById('tooltip-meaning').innerText = meaning || '';
+            tooltip.classList.remove('hidden');
+            positionTooltip(evt);
+        }
+
+        function positionTooltip(evt) {
+            const tooltip = document.getElementById('data-tooltip');
+            if (tooltip.classList.contains('hidden')) return;
+            tooltip.style.left = `${evt.clientX + 12}px`;
+            tooltip.style.top = `${evt.clientY + 12}px`;
+        }
+
+        function hideTooltip() {
+            document.getElementById('data-tooltip').classList.add('hidden');
+        }
+
+        // --- CSV & Backup Handlers ---
+        function parseCSV(text) {
+            let lines = [];
+            let cur = [];
+            let val = '';
+            let inQuotes = false;
+            
+            let firstLine = text.split(/\r?\n/)[0] || '';
+            let delimiter = ',';
+            if (firstLine.includes('\t')) delimiter = '\t';
+            else if (firstLine.includes(';') && !firstLine.includes(',')) delimiter = ';';
+
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i];
+                let next = text[i + 1];
+
+                if (inQuotes) {
+                    if (c === '"' && next === '"') {
+                        val += '"';
+                        i++;
+                    } else if (c === '"') {
+                        inQuotes = false;
+                    } else {
+                        val += c;
+                    }
+                } else {
+                    if (c === '"') {
+                        inQuotes = true;
+                    } else if (c === delimiter) {
+                        cur.push(val.trim());
+                        val = '';
+                    } else if (c === '\r') {
+                        if (next === '\n') i++;
+                        cur.push(val.trim());
+                        lines.push(cur);
+                        cur = [];
+                        val = '';
+                    } else if (c === '\n') {
+                        cur.push(val.trim());
+                        lines.push(cur);
+                        cur = [];
+                        val = '';
+                    } else {
+                        val += c;
+                    }
+                }
+            }
+            if (val || cur.length > 0) {
+                cur.push(val.trim());
+                lines.push(cur);
+            }
+
+            if (lines.length < 2) return [];
+
+            const headers = lines[0].map(h => h.toLowerCase().trim());
+            let result = [];
+
+            for (let l = 1; l < lines.length; l++) {
+                let row = lines[l];
+                if (row.length === 0 || (row.length === 1 && row[0] === '')) continue;
+                let obj = {};
+                headers.forEach((h, idx) => {
+                    const cleanH = h.replace(/^["']|["']$/g, '');
+                    if (['word', 'word reading', 'word meaning', 'word furigana', 'sentence', 'sentence meaning', 'sentence furigana', 'notes', 'pitch accent', 'pitch accent notes', 'frequency'].includes(cleanH)) {
+                        obj[cleanH] = row[idx] || "";
+                    }
+                });
+                result.push(obj);
+            }
+            return result;
+        }
+
+        function handleCSVImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const parsed = parseCSV(evt.target.result);
+                if (parsed.length > 0) {
+                    vocabData = parsed;
+                    userState = { favorites: {}, tags: {}, hidden: {}, lastSortedIndex: 0 };
+                    saveApplicationState();
+                    renderCurrentStage();
+                    showToast(`Imported ${parsed.length} vocabulary words from CSV`);
+                } else {
+                    showToast("Failed to parse CSV file format.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportJSONBackup() {
+            const backupData = {
+                vocabData: vocabData,
+                userState: userState
+            };
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nihongo_vault_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            showToast("Backup JSON exported!");
+        }
+
+        function importJSONBackup(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    let importedVocab = [];
+                    let importedState = { favorites: {}, tags: {}, hidden: {}, lastSortedIndex: 0 };
+
+                    if (Array.isArray(data)) {
+                        importedVocab = data;
+                        importedState.lastSortedIndex = calculateSmartInitialIndex(importedVocab, {});
+                    } else if (data.vocabData && Array.isArray(data.vocabData)) {
+                        importedVocab = data.vocabData;
+                        
+                        if (data.userState) {
+                            importedState.favorites = data.userState.favorites || {};
+                            importedState.tags = data.userState.tags || {};
+                            importedState.hidden = data.userState.hidden || {};
+                        }
+
+                        // Determine lastSortedIndex safely
+                        let explicitIdx = undefined;
+                        if (typeof data.lastSortedIndex === 'number') explicitIdx = data.lastSortedIndex;
+                        else if (data.userState && typeof data.userState.lastSortedIndex === 'number') explicitIdx = data.userState.lastSortedIndex;
+
+                        if (explicitIdx !== undefined) {
+                            importedState.lastSortedIndex = explicitIdx;
+                        } else {
+                            importedState.lastSortedIndex = calculateSmartInitialIndex(importedVocab, importedState.hidden);
+                        }
+                    } else {
+                        showToast("Invalid JSON Backup Structure.");
+                        return;
+                    }
+
+                    vocabData = importedVocab;
+                    userState = importedState;
+                    clampLastSortedIndex();
+                    saveApplicationState();
+                    renderCurrentStage();
+                    showToast("JSON Backup restored!");
+                } catch(err) {
+                    showToast("Failed to load JSON file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function toggleBackupSection() {
+            const sec = document.getElementById('data-backup-section');
+            if (sec) {
+                sec.classList.toggle('hidden');
+                if (!sec.classList.contains('hidden')) {
+                    const sortInput = document.getElementById('sort-index-config-input');
+                    if (sortInput) sortInput.value = userState.lastSortedIndex || 0;
+                }
+            }
+        }
+
+        // --- Field Settings Modal Handlers ---
+        function initFieldModalContainer() {
+            const container = document.getElementById('field-checkbox-container');
+            if (!container) return;
+            container.innerHTML = "";
+            Object.keys(visibleFields).forEach(key => {
+                const label = document.createElement('label');
+                label.className = "flex items-center space-x-2 text-xs text-zinc-300 cursor-pointer uppercase select-none";
+                label.innerHTML = `
+                    <input type="checkbox" ${visibleFields[key] ? 'checked' : ''} onchange="visibleFields['${key}'] = this.checked; renderCurrentStage();" class="bg-black border-zinc-700 text-white">
+                    <span>${key}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        function toggleFieldModal() {
+            document.getElementById('field-modal').classList.toggle('hidden');
+        }
+
+        // --- Spotlight Search Modal ---
+        function toggleSpotlightModal() {
+            const modal = document.getElementById('spotlight-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                setTimeout(() => document.getElementById('spotlight-input').focus(), 50);
+            }
+        }
+
+        function handleSpotlightSearch(query) {
+            const q = query.toLowerCase().trim();
+            const resultsDiv = document.getElementById('spotlight-results');
+
+            if (!q) {
+                resultsDiv.innerHTML = `<div class="text-zinc-500 text-center py-6 font-mono">Start typing to search vocabulary...</div>`;
+                return;
+            }
+
+            let matches = [];
+            vocabData.forEach((item, idx) => {
+                if (matchesSearchQuery(item, idx, q)) {
+                    matches.push({ item, idx });
+                }
+            });
+
+            if (matches.length === 0) {
+                resultsDiv.innerHTML = `<div class="text-zinc-500 text-center py-6 font-mono">No matching vocabulary found.</div>`;
+                return;
+            }
+
+            resultsDiv.innerHTML = "";
+            matches.slice(0, 30).forEach(m => {
+                const isHidden = Boolean(userState.hidden[m.idx]);
+                const row = document.createElement('div');
+                row.className = "bg-zinc-950 border border-zinc-800 p-2.5 flex items-center justify-between hover:bg-zinc-900 cursor-pointer font-mono";
+                row.onclick = () => {
+                    toggleSpotlightModal();
+                    if (currentStage === 'data') {
+                        switchStage('sort');
+                    }
+                    if (currentStage === 'sort') {
+                        userState.lastSortedIndex = m.idx;
+                        saveApplicationState();
+                        renderSortStage();
+                    } else if (currentStage === 'review') {
+                        const queue = getActiveReviewQueue();
+                        const qIdx = queue.indexOf(m.idx);
+                        if (qIdx !== -1) {
+                            reviewIndex = qIdx;
+                        } else {
+                            switchStage('sort');
+                            userState.lastSortedIndex = m.idx;
+                            saveApplicationState();
+                        }
+                        renderCurrentStage();
+                    }
+                };
+
+                row.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-white font-bold jp-font text-base">${formatFurigana(m.item.word, m.item['word furigana'], globalFurigana)}</span>
+                        <span class="text-zinc-400">${m.item['word reading'] || ''}</span>
+                        <span class="text-zinc-300 font-bold"> - ${m.item['word meaning'] || ''}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] border px-1.5 py-0.5 ${isHidden ? 'text-sakura-500 border-sakura-500' : 'text-emerald-400 border-emerald-600'}">
+                            ${isHidden ? 'HIDDEN' : 'REVIEW'}
+                        </span>
+                        <span class="text-zinc-500 text-[10px]">#[${m.idx + 1}]</span>
+                    </div>
+                `;
+                resultsDiv.appendChild(row);
+            });
+        }
+
+        // --- Keyboard Shortcuts & Strict Guardrails ---
+        function isModalOpen() {
+            const modals = ['spotlight-modal', 'shortcut-modal', 'confirm-modal', 'field-modal'];
+            return modals.some(id => !document.getElementById(id).classList.contains('hidden'));
+        }
+
+        function setupKeyboardShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (!document.getElementById('confirm-modal').classList.contains('hidden')) {
+                        closeConfirmModal();
+                        return;
+                    }
+                    ['spotlight-modal', 'shortcut-modal', 'field-modal'].forEach(id => {
+                        document.getElementById(id).classList.add('hidden');
+                    });
+                    hideTooltip();
+                    return;
+                }
+
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                    e.preventDefault();
+                    toggleSpotlightModal();
+                    return;
+                }
+
+                if (e.key === 'Enter' && !document.getElementById('confirm-modal').classList.contains('hidden')) {
+                    e.preventDefault();
+                    document.getElementById('confirm-ok-btn').click();
+                    return;
+                }
+
+                // Guardrail: Disable navigation/hide shortcuts if inputs are focused or modal is open
+                const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                if (['INPUT', 'SELECT', 'TEXTAREA'].includes(activeTag) || isModalOpen()) {
+                    return;
+                }
+
+                if (e.key === 'ArrowRight') {
+                    if (currentStage === 'sort') navigateSort(1);
+                    else if (currentStage === 'review') navigateReview(1);
+                } else if (e.key === 'ArrowLeft') {
+                    if (currentStage === 'sort') navigateSort(-1);
+                    else if (currentStage === 'review') navigateReview(-1);
+                } else if (e.key === 'h' || e.key === 'H') {
+                    if (currentStage === 'sort') {
+                        toggleSortCurrentHidden();
+                    } else if (currentStage === 'review') {
+                        const queue = getActiveReviewQueue();
+                        if (queue.length > 0 && reviewIndex < queue.length) {
+                            hideCurrentReviewWord(queue[reviewIndex]);
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Utility Toggles ---
+        function toggleShortcutModal() {
+            document.getElementById('shortcut-modal').classList.toggle('hidden');
+        }
+
+        function toggleFurigana() {
+            globalFurigana = !globalFurigana;
+            const btn = document.getElementById('furigana-btn');
+            if (btn) {
+                btn.className = globalFurigana 
+                    ? "p-2 bg-white text-black font-bold text-base hover:bg-zinc-300 border-2 border-white" 
+                    : "p-2 bg-zinc-900 text-zinc-500 font-bold text-base hover:bg-zinc-800 border-2 border-zinc-700";
+            }
+            renderCurrentStage();
+        }
+
+        function toggleFontFamily() {
+            const body = document.body;
+            if (currentFont === 'noto') {
+                currentFont = 'klee';
+                body.classList.add('font-klee');
+            } else {
+                currentFont = 'noto';
+                body.classList.remove('font-klee');
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-message');
+            if (!toast) return;
+            toast.innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
